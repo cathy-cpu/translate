@@ -167,11 +167,8 @@
     background: #111; border: 1px solid var(--border);
     border-radius: 6px; padding: 12px; overflow-x: auto; margin: 10px 0;
   }
-  /* Actions 區塊 */
-  .msg-actions {
-    margin-top: 14px; display: flex;
-    flex-direction: column; gap: 10px;
-  }
+  /* Actions */
+  .msg-actions { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
   .msg-actions-row { display: flex; align-items: center; gap: 8px; }
   .action-btn {
     font-size: 11px; letter-spacing: 0.08em;
@@ -182,6 +179,7 @@
   }
   .action-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
   .action-btn:disabled { opacity: 0.5; cursor: default; }
+  /* 儲存按鈕：FINAL 時金色醒目 */
   .action-btn.save-btn {
     border-color: var(--gold-dim); color: var(--gold);
   }
@@ -189,10 +187,15 @@
   .action-btn.save-btn.saved {
     border-color: #4ade80; color: #4ade80; cursor: default;
   }
-  .btn-note {
-    font-size: 10px; color: var(--text-dim);
-    letter-spacing: 0.03em; line-height: 1.5;
+  /* 儲存按鈕：非 FINAL 時低調灰色 */
+  .action-btn.save-btn.secondary {
+    border-color: var(--border); color: var(--text-dim);
   }
+  .action-btn.save-btn.secondary:hover {
+    border-color: var(--gold-dim); color: var(--gold); background: none;
+  }
+  .btn-note { font-size: 10px; color: var(--text-dim); letter-spacing: 0.03em; line-height: 1.5; }
+  .btn-note.warning { color: #7a5f3a; }
   /* Typing */
   .typing-row {
     padding: 20px 28px; background: var(--bubble-ai);
@@ -251,7 +254,6 @@
 </head>
 <body>
 
-<!-- 設定 Modal -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <div class="modal-title">設定</div>
@@ -276,7 +278,7 @@
     <span class="logo-en">Thought Relay Station</span>
   </div>
   <div class="header-right">
-   
+    <span class="model-badge">Gemini 2.0 Flash Lite</span>
     <button class="header-btn" onclick="openModal()">
       <span class="key-indicator" id="keyIndicator"></span>設定
     </button>
@@ -313,11 +315,11 @@
 </div>
 
 <script>
-  // ── 硬寫設定（僅限私人使用，公開 repo 請改用設定介面輸入）──
-  let apiKey = 'AIzaSyAh95Wzez81SyytXKu9t_mRETePa1p3IL0';
+  // ── 設定（公開 repo 請改用右上角設定介面輸入）──
+  let apiKey = 'AIzaSyD512PmzJe-26foASoK5J68Nq58RS0ZQYk';
   let sheetsWebhook = 'https://script.google.com/macros/s/AKfycbwCFJVt9o435fkBZNxg6p8N-6uyHNwBBuG23XLtYTpf1K_wKQwBABCmTf-CkmNn3fhJcw/exec';
 
-  const GEMINI_MODEL = 'gemini-3.1-flash-lite-preview';
+  const GEMINI_MODEL = 'Gemini 3.1 Flash Lite';
   const SYSTEM_PROMPT = `你是一位專業的「思緒轉驛站」專家。
 任務：將使用者模糊、混亂、帶有情緒或雜訊的思緒，轉譯並結晶成「清晰、精煉、可執行」的版本。
 你的運作邏輯：
@@ -335,7 +337,6 @@
   let isLoading = false;
 
   window.onload = () => {
-    // 若有從設定介面覆寫的 Key，優先使用
     const storedKey = localStorage.getItem('gemini_api_key');
     const storedWebhook = localStorage.getItem('sheets_webhook');
     if (storedKey) apiKey = storedKey;
@@ -424,6 +425,7 @@
         })
       });
       btn.textContent = '✓ 已儲存';
+      btn.classList.remove('secondary');
       btn.classList.add('saved');
     } catch (err) {
       btn.textContent = '✗ 儲存失敗';
@@ -450,39 +452,39 @@
     const cleanText = text.replace('[FINAL]', '').trim();
     const label = isFinal ? "🚉 驛站結晶" : "AI 分析";
 
-    // 基本結構
+    // 儲存按鈕：FINAL 金色醒目 / 非 FINAL 灰色低調
+    const saveBtnClass = isFinal ? 'action-btn save-btn' : 'action-btn save-btn secondary';
+    const saveNote = isFinal
+      ? '✓ AI 已完成彙整，建議現在儲存'
+      : '⚠ AI 尚未完成最終彙整，仍可手動儲存';
+    const noteClass = isFinal ? 'btn-note' : 'btn-note warning';
+
     row.innerHTML = `
       <div class="msg-label">${label}</div>
       <div class="msg-text">${renderMarkdown(cleanText)}</div>
       <div class="msg-actions">
         <div class="msg-actions-row">
           <button class="action-btn copy-btn">複製結果</button>
-          ${isFinal ? '<button class="action-btn save-btn">儲存紀錄</button>' : ''}
+          <button class="${saveBtnClass}">儲存紀錄</button>
         </div>
         <div class="msg-actions-row">
-          <span class="btn-note">
-            ${isFinal
-              ? '「儲存紀錄」→ 確認這是最終版本，按下將儲存至 Google 試算表'
-              : ''}
-          </span>
+          <span class="${noteClass}">「儲存紀錄」→ ${saveNote}</span>
         </div>
       </div>`;
 
-    // 複製按鈕：用 dataset 避免特殊字元問題
+    // 複製按鈕
     const copyBtn = row.querySelector('.copy-btn');
     copyBtn.dataset.copyText = cleanText;
     copyBtn.addEventListener('click', function () {
       copyText(this, this.dataset.copyText);
     });
 
-    // 儲存按鈕：只在 FINAL 時出現
-    if (isFinal) {
-      const saveBtn = row.querySelector('.save-btn');
-      saveBtn.dataset.saveText = cleanText;
-      saveBtn.addEventListener('click', function () {
-        saveToSheets(this.dataset.saveText, this);
-      });
-    }
+    // 儲存按鈕
+    const saveBtn = row.querySelector('.save-btn');
+    saveBtn.dataset.saveText = cleanText;
+    saveBtn.addEventListener('click', function () {
+      saveToSheets(this.dataset.saveText, this);
+    });
 
     msgs.appendChild(row);
     scrollBottom();
@@ -528,7 +530,6 @@
     document.getElementById('finalizeBtn').disabled = val;
   }
 
-  // ── 設定 Modal ──
   function openModal() {
     document.getElementById('apiKeyInput').value = apiKey;
     document.getElementById('sheetsWebhookInput').value = sheetsWebhook;
@@ -574,7 +575,6 @@
       .replace(/<\/ul><ul>/g, '');
   }
 
-  // Textarea 自動高度
   const ta = document.getElementById('userInput');
   function autoResizeTextarea() {
     ta.style.height = 'auto';
