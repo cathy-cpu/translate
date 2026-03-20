@@ -30,8 +30,7 @@
     overflow: hidden;
   }
   .header {
-    display: flex;
-    align-items: center;
+    display: flex; align-items: center;
     justify-content: space-between;
     padding: 18px 28px;
     border-bottom: 1px solid var(--border);
@@ -78,6 +77,10 @@
   }
   .modal-desc { font-size: 12px; color: var(--text-dim); line-height: 1.7; margin-bottom: 18px; }
   .modal-desc a { color: var(--gold-dim); }
+  .modal-section-label {
+    font-size: 11px; color: var(--text-sub);
+    letter-spacing: 0.1em; margin-bottom: 6px; margin-top: 4px;
+  }
   .modal-input {
     width: 100%; background: #111; border: 1px solid var(--border);
     border-radius: 8px; padding: 10px 14px; font-size: 13px;
@@ -86,10 +89,6 @@
   }
   .modal-input:focus { border-color: var(--gold-dim); }
   .modal-input::placeholder { color: var(--text-dim); }
-  .modal-section-label {
-    font-size: 11px; color: var(--text-sub); letter-spacing: 0.1em;
-    margin-bottom: 6px; margin-top: 4px;
-  }
   .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
   .modal-btn {
     font-size: 12px; padding: 7px 18px; border-radius: 20px;
@@ -119,7 +118,7 @@
     align-items: center; justify-content: center;
     gap: 24px; padding: 40px; text-align: center;
   }
-  .diamond { width: 52px; height: 52px; position: relative; }
+  .diamond { width: 52px; height: 52px; }
   .diamond svg { width: 100%; height: 100%; opacity: 0.55; }
   .welcome-title {
     font-family: 'Noto Serif TC', serif;
@@ -168,20 +167,32 @@
     background: #111; border: 1px solid var(--border);
     border-radius: 6px; padding: 12px; overflow-x: auto; margin: 10px 0;
   }
-  .msg-actions { margin-top: 14px; display: flex; gap: 8px; align-items: center; }
+  /* Actions 區塊 */
+  .msg-actions {
+    margin-top: 14px; display: flex;
+    flex-direction: column; gap: 10px;
+  }
+  .msg-actions-row { display: flex; align-items: center; gap: 8px; }
   .action-btn {
     font-size: 11px; letter-spacing: 0.08em;
     padding: 4px 12px; border-radius: 20px;
     border: 1px solid var(--border); background: transparent;
     color: var(--text-dim); cursor: pointer; transition: all .2s;
+    flex-shrink: 0;
   }
   .action-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
-  .sheets-status {
-    font-size: 10px; color: var(--text-dim);
-    letter-spacing: 0.05em; margin-left: 4px;
+  .action-btn:disabled { opacity: 0.5; cursor: default; }
+  .action-btn.save-btn {
+    border-color: var(--gold-dim); color: var(--gold);
   }
-  .sheets-status.ok  { color: #4ade80; }
-  .sheets-status.err { color: #f87171; }
+  .action-btn.save-btn:hover { background: var(--gold-dim); color: #000; }
+  .action-btn.save-btn.saved {
+    border-color: #4ade80; color: #4ade80; cursor: default;
+  }
+  .btn-note {
+    font-size: 10px; color: var(--text-dim);
+    letter-spacing: 0.03em; line-height: 1.5;
+  }
   /* Typing */
   .typing-row {
     padding: 20px 28px; background: var(--bubble-ai);
@@ -225,24 +236,28 @@
     flex-shrink: 0; align-self: center;
   }
   #finalizeBtn:hover { background: var(--gold-dim); color: #000; }
+  #finalizeBtn:disabled { opacity: 0.5; cursor: default; }
   #sendBtn {
     width: 36px; height: 36px; background: var(--gold);
     border: none; border-radius: 8px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
   }
   #sendBtn svg { width: 16px; height: 16px; fill: #0c0c0c; }
-  .input-hint { font-size: 10px; color: var(--text-dim); margin-top: 8px; text-align: right; }
+  .input-hints { margin-top: 8px; display: flex; flex-direction: column; gap: 3px; }
+  .input-hint { font-size: 10px; color: var(--text-dim); text-align: right; }
+  .input-hint-ok { font-size: 10px; color: var(--text-dim); text-align: right; letter-spacing: 0.02em; }
 </style>
 </head>
 <body>
 
-<!-- API Key + Sheets Modal -->
+<!-- 設定 Modal -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <div class="modal-title">設定</div>
     <div class="modal-desc">
       Gemini Key 請至 <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a> 取得。<br>
-      Sheets Webhook 為選填，填入後結晶結果將自動存入試算表。
+      Sheets Webhook 為選填，填入後可手動儲存結晶結果至試算表。
     </div>
     <div class="modal-section-label">GEMINI API KEY</div>
     <input class="modal-input" id="apiKeyInput" type="password" placeholder="貼上你的 Gemini API Key" />
@@ -261,6 +276,7 @@
     <span class="logo-en">Thought Relay Station</span>
   </div>
   <div class="header-right">
+    <span class="model-badge">Gemini 2.0 Flash Lite</span>
     <button class="header-btn" onclick="openModal()">
       <span class="key-indicator" id="keyIndicator"></span>設定
     </button>
@@ -285,17 +301,23 @@
 <div class="input-area">
   <div class="input-row">
     <textarea id="userInput" rows="1" placeholder="輸入模糊的想法..."></textarea>
-    <button id="finalizeBtn" onclick="requestFinalize()">結晶整理</button>
+    <button id="finalizeBtn" onclick="requestFinalize()">我覺得 OK 了</button>
     <button id="sendBtn" onclick="sendMessage()">
       <svg viewBox="0 0 24 24"><path d="M2 21L23 12 2 3v7l15 2-15 2v7z"/></svg>
     </button>
   </div>
-  <div class="input-hint">Enter 送出 · Shift+Enter 換行</div>
+  <div class="input-hints">
+    <div class="input-hint">Enter 送出 · Shift+Enter 換行</div>
+    <div class="input-hint-ok">「我覺得 OK 了」→ 請 AI 彙整回饋，確認是否還有需要調整的地方</div>
+  </div>
 </div>
 
 <script>
-  // ── Config ──
-  const GEMINI_MODEL = 'gemini-3.1-flash-lite-preview';
+  // ── 硬寫設定（僅限私人使用，公開 repo 請改用設定介面輸入）──
+  let apiKey = 'AIzaSyCON2hmZFq54wRVRSiDnCnKigr6ScA_7zo';
+  let sheetsWebhook = 'https://script.google.com/macros/s/AKfycbwCFJVt9o435fkBZNxg6p8N-6uyHNwBBuG23XLtYTpf1K_wKQwBABCmTf-CkmNn3fhJcw/exec';
+
+  const GEMINI_MODEL = 'gemini-2.0-flash-lite';
   const SYSTEM_PROMPT = `你是一位專業的「思緒轉驛站」專家。
 任務：將使用者模糊、混亂、帶有情緒或雜訊的思緒，轉譯並結晶成「清晰、精煉、可執行」的版本。
 你的運作邏輯：
@@ -309,17 +331,19 @@
    - 若不完整：不要加標籤，請說明還缺什麼。
 回覆使用繁體中文，語氣優雅且專業。`;
 
-  // ── State ──
-  let apiKey = 'AIzaSyCON2hmZFq54wRVRSiDnCnKigr6ScA_7zo';
-  let sheetsWebhook = 'https://script.google.com/macros/s/AKfycbwCFJVt9o435fkBZNxg6p8N-6uyHNwBBuG23XLtYTpf1K_wKQwBABCmTf-CkmNn3fhJcw/exec';
   let conversationHistory = [];
   let isLoading = false;
 
   window.onload = () => {
+    // 若有從設定介面覆寫的 Key，優先使用
+    const storedKey = localStorage.getItem('gemini_api_key');
+    const storedWebhook = localStorage.getItem('sheets_webhook');
+    if (storedKey) apiKey = storedKey;
+    if (storedWebhook) sheetsWebhook = storedWebhook;
     if (apiKey) document.getElementById('keyIndicator').classList.add('active');
   };
 
-  // ── 結晶整理 ──
+  // ── 「我覺得 OK 了」──
   async function requestFinalize() {
     if (conversationHistory.length === 0 || isLoading) return;
     const finalizePrompt = "【系統指令：請對目前對話進行[結晶化整理]。如果資訊完整請標註 [FINAL]，若不完整請指出缺漏。】";
@@ -381,27 +405,29 @@
     return json.candidates?.[0]?.content?.parts?.[0]?.text || '未收到回覆';
   }
 
-  // ── 存入 Google 試算表 ──
-  async function saveToSheets(text, statusEl) {
-    if (!sheetsWebhook) return;
-    statusEl.textContent = '⏳ 存入試算表中…';
-    statusEl.className = 'sheets-status';
+  // ── 儲存至 Google 試算表 ──
+  async function saveToSheets(text, btn) {
+    if (!sheetsWebhook) {
+      btn.textContent = '未設定 Webhook';
+      return;
+    }
+    btn.textContent = '儲存中…';
+    btn.disabled = true;
     try {
       await fetch(sheetsWebhook, {
         method: 'POST',
-        mode: 'no-cors',          // Apps Script 需要此設定
+        mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           timestamp: new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }),
           content: text
         })
       });
-      // no-cors 模式下無法讀取回應，假設成功
-      statusEl.textContent = '✓ 已存入試算表';
-      statusEl.className = 'sheets-status ok';
+      btn.textContent = '✓ 已儲存';
+      btn.classList.add('saved');
     } catch (err) {
-      statusEl.textContent = '✗ 存入失敗';
-      statusEl.className = 'sheets-status err';
+      btn.textContent = '✗ 儲存失敗';
+      btn.disabled = false;
     }
   }
 
@@ -424,38 +450,49 @@
     const cleanText = text.replace('[FINAL]', '').trim();
     const label = isFinal ? "🚉 驛站結晶" : "AI 分析";
 
+    // 基本結構
     row.innerHTML = `
       <div class="msg-label">${label}</div>
       <div class="msg-text">${renderMarkdown(cleanText)}</div>
       <div class="msg-actions">
-        <button class="action-btn copy-btn">複製結果</button>
-        ${isFinal && sheetsWebhook ? '<span class="sheets-status"></span>' : ''}
+        <div class="msg-actions-row">
+          <button class="action-btn copy-btn">複製結果</button>
+          ${isFinal ? '<button class="action-btn save-btn">儲存紀錄</button>' : ''}
+        </div>
+        <div class="msg-actions-row">
+          <span class="btn-note">
+            ${isFinal
+              ? '「儲存紀錄」→ 確認這是最終版本，按下將儲存至 Google 試算表'
+              : ''}
+          </span>
+        </div>
       </div>`;
 
-    // ✅ 修正：用 dataset + addEventListener，避免特殊字元破壞 onclick 屬性
+    // 複製按鈕：用 dataset 避免特殊字元問題
     const copyBtn = row.querySelector('.copy-btn');
     copyBtn.dataset.copyText = cleanText;
     copyBtn.addEventListener('click', function () {
       copyText(this, this.dataset.copyText);
     });
 
+    // 儲存按鈕：只在 FINAL 時出現
+    if (isFinal) {
+      const saveBtn = row.querySelector('.save-btn');
+      saveBtn.dataset.saveText = cleanText;
+      saveBtn.addEventListener('click', function () {
+        saveToSheets(this.dataset.saveText, this);
+      });
+    }
+
     msgs.appendChild(row);
     scrollBottom();
-
-    // 若為結晶結果且有設定 Webhook，自動存入試算表
-    if (isFinal && sheetsWebhook) {
-      const statusEl = row.querySelector('.sheets-status');
-      saveToSheets(cleanText, statusEl);
-    }
   }
 
-  // ✅ 修正：加入 clipboard 失敗時的備用方案
   function copyText(btn, text) {
     navigator.clipboard.writeText(text).then(() => {
       btn.textContent = '已複製 ✓';
       setTimeout(() => btn.textContent = '複製結果', 1500);
     }).catch(() => {
-      // 備用方案（部分瀏覽器或非 HTTPS 環境）
       const ta = document.createElement('textarea');
       ta.value = text;
       ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none;';
@@ -484,6 +521,7 @@
 
   function removeEl(el) { if (el?.parentNode) el.parentNode.removeChild(el); }
   function scrollBottom() { const c = document.getElementById('chat'); c.scrollTop = c.scrollHeight; }
+
   function setLoading(val) {
     isLoading = val;
     document.getElementById('sendBtn').disabled = val;
@@ -505,8 +543,10 @@
       localStorage.setItem('gemini_api_key', key);
       document.getElementById('keyIndicator').classList.add('active');
     }
-    sheetsWebhook = webhook;
-    localStorage.setItem('sheets_webhook', webhook);
+    if (webhook) {
+      sheetsWebhook = webhook;
+      localStorage.setItem('sheets_webhook', webhook);
+    }
     closeModal();
   }
 
@@ -536,7 +576,10 @@
 
   // Textarea 自動高度
   const ta = document.getElementById('userInput');
-  function autoResizeTextarea() { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 120) + 'px'; }
+  function autoResizeTextarea() {
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+  }
   ta.addEventListener('input', autoResizeTextarea);
   ta.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
