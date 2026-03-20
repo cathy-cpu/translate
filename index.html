@@ -340,6 +340,44 @@
 </div>
 
 <script>
+ // 點擊「結晶整理」時觸發
+async function requestFinalize() {
+  const text = "【系統指令：請總結目前的對話。如果資訊已完整清晰，請給出最終的結晶版本，並在最開頭加上 [FINAL] 標籤。如果還不完整，請指出缺漏。】";
+  
+  // 顯示 loading 並發送給 AI
+  setLoading(true);
+  const typingEl = showTyping();
+  
+  try {
+    // 這裡調用你原本就寫好的 callGemini 函式
+    const reply = await callGemini([...conversationHistory, { role: 'user', parts: [{ text }] }]);
+    removeEl(typingEl);
+    
+    // 顯示回覆，並判斷是否要儲存
+    appendAiMsg(reply);
+    
+    // 如果 AI 判定完成（標籤偵測）
+    if (reply.includes('[FINAL]')) {
+      const cleanContent = reply.replace('[FINAL]', '').trim();
+      saveToSheet(cleanContent); // 自動存入試算表
+    }
+  } catch (err) {
+    removeEl(typingEl);
+    appendAiMsg(`❌ 錯誤：${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+}
+
+// 呼叫 GAS 後端儲存
+function saveToSheet(content) {
+  // 這是 GAS 內建的語法，用來呼叫 Code.gs 裡的 function
+  google.script.run
+    .withSuccessHandler(function(msg) {
+      alert(msg); // 成功後跳出提示
+    })
+    .saveDataToSheet(content);
+}
   // ── Config ──
   const GEMINI_MODEL = 'gemini-3.1-flash-lite-preview';
   const SYSTEM_PROMPT = `你是一位專業的「文字語意分析助手」。
