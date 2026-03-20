@@ -278,7 +278,7 @@
     <span class="logo-en">Thought Relay Station</span>
   </div>
   <div class="header-right">
-    <span class="model-badge">Gemini 2.0 Flash Lite</span>
+    <span class="model-badge">Gemini 3.1 Flash Lite</span>
     <button class="header-btn" onclick="openModal()">
       <span class="key-indicator" id="keyIndicator"></span>設定
     </button>
@@ -316,7 +316,7 @@
 
 <script>
   // ── 設定（公開 repo 請改用右上角設定介面輸入）──
-
+let apiKey = localStorage.getItem('gemini_api_key') || '';
   let sheetsWebhook = 'https://script.google.com/macros/s/AKfycbwCFJVt9o435fkBZNxg6p8N-6uyHNwBBuG23XLtYTpf1K_wKQwBABCmTf-CkmNn3fhJcw/exec';
 
   const GEMINI_MODEL = 'Gemini 3.1 Flash Lite';
